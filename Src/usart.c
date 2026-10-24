@@ -37,7 +37,21 @@ void USART2_RegisterCallback(void *callback)
 
 /* Space for global variables, if you need them */
 
-	// type global variables here
+#define USART2_RX_MAX_BURST 20
+
+static uint16_t rx_read_idx = 0;
+
+static void USART2_ForwardRxData(uint16_t write_idx)
+{
+	while(rx_read_idx < write_idx)
+	{
+		if(USART2_ProcessData != 0)
+		{
+	 		USART2_ProcessData(bufferUSART2dma[rx_read_idx]);
+		}
+		 rx_read_idx++;
+	}
+}
 
 
 /* USART2 init function */
@@ -153,9 +167,27 @@ void USART2_PutBuffer(uint8_t *buffer, uint8_t length)
  */
 void USART2_CheckDmaReception(void)
 {
-	//type your implementation here
-}
+	uint16_t write_idx = DMA_USART2_BUFFER_SIZE - LL_DMA_GetDataLength(DMA1, LL_DMA_CHANNEL_6);
 
+		USART2_ForwardRxData(write_idx);
+
+		if((DMA_USART2_BUFFER_SIZE - write_idx) <= USART2_RX_MAX_BURST)
+		{
+			LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_6);
+			while(LL_DMA_IsEnabledChannel(DMA1, LL_DMA_CHANNEL_6));
+
+			write_idx = DMA_USART2_BUFFER_SIZE - LL_DMA_GetDataLength(DMA1, LL_DMA_CHANNEL_6);
+			USART2_ForwardRxData(write_idx);
+
+			LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_6, DMA_USART2_BUFFER_SIZE);
+			LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_6);
+			rx_read_idx = 0;
+		}
+}
+uint16_t USART2_GetRxOccupied(void)
+{
+	return DMA_USART2_BUFFER_SIZE - LL_DMA_GetDataLength(DMA1, LL_DMA_CHANNEL_6);
+}
 
 
 
