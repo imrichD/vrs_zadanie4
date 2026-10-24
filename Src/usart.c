@@ -125,7 +125,10 @@ void MX_USART2_UART_Init(void)
 
   /* Enable USART2 peripheral and interrupts*/
 
-  	  //type your code here:
+  LL_USART_EnableIT_IDLE(USART2);
+  LL_USART_Enable(USART2);
+
+  while(!LL_USART_IsActiveFlag_TEACK(USART2) || !LL_USART_IsActiveFlag_REACK(USART2));
 }
 
 
