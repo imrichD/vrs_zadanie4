@@ -94,7 +94,18 @@ void MX_USART2_UART_Init(void)
 
   /* USART2_TX Init */
 
-	  // type DMA USART Tx configuration here
+  LL_DMA_ConfigTransfer(DMA1, LL_DMA_CHANNEL_7,
+                        LL_DMA_DIRECTION_MEMORY_TO_PERIPH |
+                        LL_DMA_MODE_NORMAL |
+                        LL_DMA_PERIPH_NOINCREMENT |
+                        LL_DMA_MEMORY_INCREMENT |
+                        LL_DMA_PDATAALIGN_BYTE |
+                        LL_DMA_MDATAALIGN_BYTE |
+                        LL_DMA_PRIORITY_MEDIUM);
+
+  LL_DMA_SetPeriphAddress(DMA1, LL_DMA_CHANNEL_7,
+                          LL_USART_DMA_GetRegAddr(USART2, LL_USART_DMA_REG_DATA_TRANSMIT));
+  LL_USART_EnableDMAReq_TX(USART2);
 
 
   /* USART2 interrupt Init */
