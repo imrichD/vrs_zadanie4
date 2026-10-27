@@ -70,6 +70,7 @@ static uint8_t rxRingPop(uint8_t *byte)
 }
 
 #define MAX_STRING_LEN 35
+#define STATUS_PERIOD_MS 2000
 
 typedef enum
 {
@@ -124,6 +125,7 @@ int main(void)
   USART2_RegisterCallback(rxRingPush);
   uint8_t rx_byte;
   char msg[128];
+  uint16_t ms_elapsed = 0;
 
   while (1)
   {
@@ -148,6 +150,23 @@ int main(void)
 			  string_ready = 0;
 			  snprintf(msg, sizeof(msg), "Valid string: %s, lower-case: %d, upper-case: %d\r\n",
 					   rx_string, letters.small_letter, letters.capital_letter);
+			  usartSendText(msg);
+		  }
+	  }
+	  if(LL_SYSTICK_IsActiveCounterFlag())
+	  {
+		  ms_elapsed++;
+
+		  if(ms_elapsed >= STATUS_PERIOD_MS)
+		  {
+			  ms_elapsed = 0;
+
+			  uint16_t occupied = USART2_GetRxOccupied();
+			  float load = 100.0f * occupied / DMA_USART2_BUFFER_SIZE;
+
+			  snprintf(msg, sizeof(msg),
+					   "Buffer capacity: %d bytes, occupied memory: %d bytes, load [in %%]: %.1f%%\r\n",
+					   DMA_USART2_BUFFER_SIZE, occupied, load);
 			  usartSendText(msg);
 		  }
 	  }
