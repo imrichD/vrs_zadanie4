@@ -67,6 +67,28 @@ static uint8_t rxRingPop(uint8_t *byte)
 	return 1;
 }
 
+#define MAX_STRING_LEN 35
+
+typedef enum
+{
+	WAIT_FOR_START,
+	READING_STRING
+} parser_state_t;
+
+letter_count_ letters = {0};
+
+static parser_state_t parser_state = WAIT_FOR_START;
+static char    rx_string[MAX_STRING_LEN + 1];
+static uint8_t rx_string_len = 0;
+static uint8_t string_ready = 0;
+
+static void startNewString(void)
+{
+	rx_string_len = 0;
+	letters.small_letter = 0;
+	letters.capital_letter = 0;
+	parser_state = READING_STRING;
+}
 
 int main(void)
 {
@@ -150,7 +172,46 @@ void proccesDmaData(uint8_t sign)
 {
 	/* Process received data */
 
-		// type your algorithm here:
+	switch(parser_state)
+	{
+		case WAIT_FOR_START:
+			if(sign == '#')
+			{
+				startNewString();
+			}
+			break;
+
+		case READING_STRING:
+			if(sign == '#')
+			{
+				startNewString();
+			}
+			else if(sign == '$')
+			{
+				rx_string[rx_string_len] = '\0';
+				string_ready = 1;
+				parser_state = WAIT_FOR_START;
+			}
+			else
+			{
+				rx_string[rx_string_len++] = sign;
+
+				if(sign >= 'a' && sign <= 'z')
+				{
+					letters.small_letter++;
+				}
+				else if(sign >= 'A' && sign <= 'Z')
+				{
+					letters.capital_letter++;
+				}
+
+				if(rx_string_len >= MAX_STRING_LEN)
+				{
+					parser_state = WAIT_FOR_START;
+				}
+			}
+			break;
+	}
 }
 
 
