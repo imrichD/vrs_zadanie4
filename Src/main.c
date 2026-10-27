@@ -23,6 +23,8 @@
 #include "dma.h"
 #include "usart.h"
 #include "gpio.h"
+#include <stdio.h>
+#include <string.h>
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -90,6 +92,17 @@ static void startNewString(void)
 	parser_state = READING_STRING;
 }
 
+static char tx_buffer[128];
+
+static void usartSendText(const char *text)
+{
+	while(LL_DMA_IsEnabledChannel(DMA1, LL_DMA_CHANNEL_7));
+
+	uint8_t length = (uint8_t)strlen(text);
+	memcpy(tx_buffer, text, length);
+	USART2_PutBuffer((uint8_t *)tx_buffer, length);
+}
+
 int main(void)
 {
   /* MCU Configuration--------------------------------------------------------*/
@@ -110,6 +123,7 @@ int main(void)
 
   USART2_RegisterCallback(rxRingPush);
   uint8_t rx_byte;
+  char msg[128];
 
   while (1)
   {
@@ -128,6 +142,14 @@ int main(void)
 	  while(rxRingPop(&rx_byte))
 	  {
 		  proccesDmaData(rx_byte);
+
+		  if(string_ready)
+		  {
+			  string_ready = 0;
+			  snprintf(msg, sizeof(msg), "Valid string: %s, lower-case: %d, upper-case: %d\r\n",
+					   rx_string, letters.small_letter, letters.capital_letter);
+			  usartSendText(msg);
+		  }
 	  }
   }
   /* USER CODE END 3 */
