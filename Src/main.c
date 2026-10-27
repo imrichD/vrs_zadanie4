@@ -38,7 +38,34 @@ void proccesDmaData(uint8_t sign);
 
 /* Space for your global variables. */
 
-	// type your global variables here:
+#define RX_RING_SIZE 256
+
+static volatile uint8_t  rx_ring[RX_RING_SIZE];
+static volatile uint16_t ring_head = 0;
+static volatile uint16_t ring_tail = 0;
+
+static void rxRingPush(uint8_t byte)
+{
+	uint16_t next = (ring_head + 1) % RX_RING_SIZE;
+
+	if(next != ring_tail)
+	{
+		rx_ring[ring_head] = byte;
+		ring_head = next;
+	}
+}
+
+static uint8_t rxRingPop(uint8_t *byte)
+{
+	if(ring_tail == ring_head)
+	{
+		return 0;
+	}
+
+	*byte = rx_ring[ring_tail];
+	ring_tail = (ring_tail + 1) % RX_RING_SIZE;
+	return 1;
+}
 
 
 int main(void)
@@ -59,7 +86,8 @@ int main(void)
 
   /* Space for your local variables, callback registration ...*/
 
-  	  //type your code here:
+  USART2_RegisterCallback(rxRingPush);
+  uint8_t rx_byte;
 
   while (1)
   {
@@ -75,7 +103,10 @@ int main(void)
 	   * Example message (what I wish to see in terminal) - Valid string: Platn15uborZnakov, lower-case: 13, upper-case: 2
 	   */
 
-  	  	  	  //type your code here:
+	  while(rxRingPop(&rx_byte))
+	  {
+		  proccesDmaData(rx_byte);
+	  }
   }
   /* USER CODE END 3 */
 }
